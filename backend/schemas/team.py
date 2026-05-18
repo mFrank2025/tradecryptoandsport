@@ -28,5 +28,4 @@ class TeamRead(TeamBase):
 
 
 class TeamReadWithPlayers(TeamRead):
-    from schemas.player import PlayerRead
-    players: list["PlayerRead"] = []
+    players: list = []
