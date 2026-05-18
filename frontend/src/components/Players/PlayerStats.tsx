@@ -52,7 +52,7 @@ export default function PlayerStats({ stats }: PlayerStatsProps) {
           <CardTitle className="text-base">Passaggi</CardTitle>
         </CardHeader>
         <div className="space-y-3">
-          <StatBar label="Passaggi totali" value={stats.passes_attempted ?? stats.matches_played * 40} max={500} color="bg-blue-500" />
+          <StatBar label="Passaggi totali" value={stats.matches_played * 40} max={500} color="bg-blue-500" />
           <StatBar label="Precisione passaggi" value={stats.pass_accuracy} max={100} suffix="%" color="bg-blue-500" />
           <StatBar label="Dribbling riusciti" value={stats.dribbles_completed} max={50} color="bg-purple-500" />
         </div>
