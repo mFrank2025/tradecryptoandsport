@@ -1,200 +1,170 @@
-import { useNavigate } from 'react-router-dom';
-import { Users, Shield, Calendar, Dumbbell, Plus, ChevronRight, TrendingUp, Zap } from 'lucide-react';
-import { useTeams } from '../hooks/useTeams';
-import { usePlayers } from '../hooks/usePlayers';
-import { useRecentMatches } from '../hooks/useMatches';
-import MatchCard from '../components/Match/MatchCard';
-import Card, { CardHeader, CardTitle } from '../components/UI/Card';
-import Button from '../components/UI/Button';
-import { FullPageSpinner } from '../components/UI/Spinner';
+import { Package, ClipboardList, TrendingUp, Award, AlertTriangle, ArrowUpRight } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { mockKpi, mockRdO, monthlyData } from '../lib/mockData';
+import { formatCurrency, formatDate, daysUntil } from '../lib/utils';
+import { Link } from 'react-router-dom';
+
+const rdoStatoVariant: Record<string, 'default' | 'success' | 'warning' | 'destructive' | 'secondary' | 'info'> = {
+  nuova: 'info',
+  in_lavorazione: 'warning',
+  offerta_inviata: 'default',
+  aggiudicata: 'success',
+  persa: 'destructive',
+  scaduta: 'secondary',
+};
+
+const rdoStatoLabels: Record<string, string> = {
+  nuova: 'Nuova', in_lavorazione: 'In lavorazione', offerta_inviata: 'Offerta inviata',
+  aggiudicata: 'Aggiudicata', persa: 'Persa', scaduta: 'Scaduta',
+};
+
+function KpiCard({ title, value, sub, icon: Icon, trend, color }: {
+  title: string; value: string; sub?: string; icon: React.ElementType; trend?: string; color: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{value}</p>
+            {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
+            {trend && (
+              <div className="flex items-center gap-1 mt-2">
+                <ArrowUpRight className="h-3 w-3 text-emerald-400" />
+                <span className="text-xs text-emerald-400">{trend}</span>
+              </div>
+            )}
+          </div>
+          <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${color}`}>
+            <Icon className="h-6 w-6" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const { data: teams = [] } = useTeams();
-  const { data: players = [] } = usePlayers();
-  const { data: recentMatches = [], isLoading: loadingMatches } = useRecentMatches(5);
-
-  const liveMatches = recentMatches.filter((m) => m.status === 'live' || m.status === 'halftime');
-  const finishedMatches = recentMatches.filter((m) => m.status === 'finished');
-
-  const stats = [
-    { label: 'Giocatori', value: players.length, icon: Users, color: 'text-emerald-400', bg: 'bg-emerald-900/30 border-emerald-800' },
-    { label: 'Squadre', value: teams.length, icon: Shield, color: 'text-blue-400', bg: 'bg-blue-900/30 border-blue-800' },
-    { label: 'Partite Totali', value: recentMatches.length, icon: Calendar, color: 'text-purple-400', bg: 'bg-purple-900/30 border-purple-800' },
-    { label: 'In Corso', value: liveMatches.length, icon: Zap, color: 'text-red-400', bg: 'bg-red-900/30 border-red-800' },
-  ];
+  const recentRdo = mockRdO.slice(0, 5);
+  const urgentRdo = mockRdO
+    .filter((r) => ['nuova', 'in_lavorazione', 'offerta_inviata'].includes(r.stato))
+    .sort((a, b) => new Date(a.scadenza).getTime() - new Date(b.scadenza).getTime())
+    .slice(0, 3);
 
   return (
-    <div className="space-y-6">
-      {/* Welcome header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-3xl font-black text-white">Benvenuto, Coach! 👋</h2>
-          <p className="text-gray-400 mt-1">Analisi tattica avanzata con intelligenza artificiale</p>
-        </div>
-        <div className="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-xl px-3 py-2">
-          <span className="text-2xl">⚽</span>
-          <span className="text-sm font-medium text-gray-300">Calcio</span>
-          <ChevronRight className="w-4 h-4 text-gray-500" />
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground text-sm mt-1">Panoramica attività MePA</p>
       </div>
 
-      {/* Live matches alert */}
-      {liveMatches.length > 0 && (
-        <div className="bg-red-900/20 border border-red-700/50 rounded-xl p-4 flex items-center justify-between animate-pulse-slow">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 bg-red-500 rounded-full live-dot" />
-            <span className="font-semibold text-red-400">
-              {liveMatches.length === 1
-                ? `Partita in corso: ${liveMatches[0].home_team?.name} vs ${liveMatches[0].away_team?.name}`
-                : `${liveMatches.length} partite in corso`}
-            </span>
-          </div>
-          <Button
-            size="sm"
-            variant="danger"
-            onClick={() => navigate(`/matches/${liveMatches[0].id}/live`)}
-          >
-            Vai LIVE
-          </Button>
-        </div>
-      )}
-
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className={`border rounded-xl p-4 ${bg}`}>
-            <div className="flex items-start justify-between mb-3">
-              <Icon className={`w-5 h-5 ${color}`} />
-            </div>
-            <div className={`text-4xl font-black ${color}`}>{value}</div>
-            <div className="text-sm text-gray-400 mt-1">{label}</div>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <KpiCard title="Prodotti Attivi" value={mockKpi.prodottiAttivi.toString()} sub={`${mockKpi.prodottiTotali} totali nel catalogo`} icon={Package} color="bg-primary/20 text-primary" trend="+2 questo mese" />
+        <KpiCard title="RdO in Scadenza" value={mockKpi.rdoInScadenza.toString()} sub="Nei prossimi 7 giorni" icon={AlertTriangle} color="bg-amber-500/20 text-amber-400" />
+        <KpiCard title="Valore Offerte" value={formatCurrency(mockKpi.valoreOfferte)} sub="Offerte attive correnti" icon={TrendingUp} color="bg-emerald-500/20 text-emerald-400" trend="+18% vs mese scorso" />
+        <KpiCard title="RdO Aggiudicate" value={mockKpi.rdoVinte.toString()} sub="Anno corrente" icon={Award} color="bg-sky-500/20 text-sky-400" />
+        <KpiCard title="Tasso Aggiudicazione" value={`${mockKpi.tassoAggiudicazione.toFixed(1)}%`} sub="Successo gare" icon={TrendingUp} color="bg-violet-500/20 text-violet-400" />
+        <KpiCard title="RdO Attive" value={mockRdO.filter((r) => ['nuova', 'in_lavorazione', 'offerta_inviata'].includes(r.stato)).length.toString()} sub="In gestione corrente" icon={ClipboardList} color="bg-orange-500/20 text-orange-400" />
       </div>
 
-      {/* Main content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent matches */}
-        <div className="lg:col-span-2">
-          <Card padding={false}>
-            <CardHeader className="p-4 pb-0">
-              <CardTitle>Partite Recenti</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/matches')}>
-                Vedi tutte <ChevronRight className="w-4 h-4" />
-              </Button>
-            </CardHeader>
-            <div className="p-4 space-y-3">
-              {loadingMatches ? (
-                <FullPageSpinner />
-              ) : recentMatches.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Calendar className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-                  <p>Nessuna partita registrata</p>
-                  <Button
-                    size="sm"
-                    className="mt-3"
-                    onClick={() => navigate('/matches')}
-                  >
-                    Crea la prima partita
-                  </Button>
-                </div>
-              ) : (
-                recentMatches.map((match) => (
-                  <MatchCard key={match.id} match={match} />
-                ))
-              )}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Andamento Offerte 2024</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={monthlyData}>
+                <defs>
+                  <linearGradient id="offGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(252 87% 67%)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(252 87% 67%)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="aggGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#34d399" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(216 34% 17%)" />
+                <XAxis dataKey="mese" tick={{ fill: 'hsl(215 20% 55%)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'hsl(215 20% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                <Tooltip contentStyle={{ background: 'hsl(222 47% 14%)', border: '1px solid hsl(216 34% 17%)', borderRadius: 8 }} labelStyle={{ color: 'hsl(213 31% 91%)' }} formatter={(v: number) => [formatCurrency(v), '']} />
+                <Area type="monotone" dataKey="offerte" name="Offerte" stroke="hsl(252 87% 67%)" fill="url(#offGrad)" strokeWidth={2} />
+                <Area type="monotone" dataKey="aggiudicate" name="Aggiudicate" stroke="#34d399" fill="url(#aggGrad)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary inline-block" />Offerte inviate</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-400 inline-block" />Aggiudicate</span>
             </div>
-          </Card>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Quick actions + AI insights */}
-        <div className="space-y-4">
-          {/* Quick actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Azioni Rapide</CardTitle>
-            </CardHeader>
-            <div className="space-y-2">
-              {[
-                {
-                  label: 'Nuova Partita',
-                  icon: Plus,
-                  color: 'text-emerald-400',
-                  bg: 'hover:bg-emerald-900/20 border-emerald-800/50',
-                  action: () => navigate('/matches'),
-                },
-                {
-                  label: 'Aggiungi Giocatore',
-                  icon: Users,
-                  color: 'text-blue-400',
-                  bg: 'hover:bg-blue-900/20 border-blue-800/50',
-                  action: () => navigate('/players'),
-                },
-                {
-                  label: 'Nuova Sessione Allenamento',
-                  icon: Dumbbell,
-                  color: 'text-purple-400',
-                  bg: 'hover:bg-purple-900/20 border-purple-800/50',
-                  action: () => navigate('/training'),
-                },
-                {
-                  label: 'Analisi AI',
-                  icon: TrendingUp,
-                  color: 'text-orange-400',
-                  bg: 'hover:bg-orange-900/20 border-orange-800/50',
-                  action: () => navigate('/analysis'),
-                },
-              ].map(({ label, icon: Icon, color, bg, action }) => (
-                <button
-                  key={label}
-                  onClick={action}
-                  className={`
-                    w-full flex items-center gap-3 p-3 rounded-lg border border-gray-800
-                    transition-all text-left ${bg}
-                  `}
-                >
-                  <div className={`w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center ${color}`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-200">{label}</span>
-                  <ChevronRight className="w-4 h-4 text-gray-600 ml-auto" />
-                </button>
-              ))}
-            </div>
-          </Card>
-
-          {/* Team overview */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Squadre ({teams.length})</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/teams')}>
-                Gestisci
-              </Button>
-            </CardHeader>
-            <div className="space-y-2">
-              {teams.slice(0, 4).map((team) => (
-                <div
-                  key={team.id}
-                  className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-lg cursor-pointer transition-colors"
-                  onClick={() => navigate('/teams')}
-                >
-                  <div className="w-8 h-8 bg-gray-800 border border-gray-700 rounded-lg flex items-center justify-center text-sm font-bold text-emerald-400">
-                    {team.short_name?.[0] ?? team.name[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-white truncate">{team.name}</div>
-                    {team.city && <div className="text-xs text-gray-500">{team.city}</div>}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-400" />
+              In Scadenza
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {urgentRdo.map((rdo) => {
+              const days = daysUntil(rdo.scadenza);
+              return (
+                <div key={rdo.id} className="rounded-lg bg-muted p-3 space-y-1.5">
+                  <p className="text-xs font-mono text-muted-foreground">{rdo.numero}</p>
+                  <p className="text-sm font-medium text-foreground line-clamp-2">{rdo.titolo}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground truncate max-w-[120px]">{rdo.stazioneAppaltante}</span>
+                    <Badge variant={days <= 7 ? 'destructive' : 'warning'} className="text-[10px] ml-1">
+                      {days > 0 ? `${days}gg` : 'Scaduta'}
+                    </Badge>
                   </div>
                 </div>
-              ))}
-              {teams.length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-2">Nessuna squadra</p>
-              )}
-            </div>
-          </Card>
-        </div>
+              );
+            })}
+            <Link to="/rdo">
+              <Button variant="ghost" size="sm" className="w-full text-xs mt-1">Vedi tutte le RdO →</Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">RdO Recenti</CardTitle>
+          <Link to="/rdo"><Button variant="outline" size="sm">Vedi tutte</Button></Link>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  {['Numero', 'Titolo', 'Ente', 'Importo', 'Scadenza', 'Stato'].map((h, i) => (
+                    <th key={h} className={`text-xs text-muted-foreground font-medium px-6 py-3 ${i === 3 ? 'text-right' : 'text-left'}`}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {recentRdo.map((rdo) => (
+                  <tr key={rdo.id} className="hover:bg-muted/50 transition-colors">
+                    <td className="px-6 py-3 font-mono text-xs text-muted-foreground">{rdo.numero}</td>
+                    <td className="px-6 py-3 text-foreground max-w-xs"><span className="line-clamp-1">{rdo.titolo}</span></td>
+                    <td className="px-6 py-3 text-muted-foreground text-xs">{rdo.stazioneAppaltante}</td>
+                    <td className="px-6 py-3 text-right font-medium text-foreground">{formatCurrency(rdo.importoBase)}</td>
+                    <td className="px-6 py-3 text-xs text-muted-foreground">{formatDate(rdo.scadenza)}</td>
+                    <td className="px-6 py-3"><Badge variant={rdoStatoVariant[rdo.stato]} className="text-[10px]">{rdoStatoLabels[rdo.stato]}</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
