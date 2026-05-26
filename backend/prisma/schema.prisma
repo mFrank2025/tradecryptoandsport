@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      Role     @default(OPERATORE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Product {
+  id                String   @id @default(cuid())
+  codiceArticolo    String   @unique
+  descrizione       String
+  descrizioneTecnica String?
+  categoria         String
+  sottocategoria    String?
+  prezzoUnitario    Float
+  unitaMisura       String
+  iva               Int      @default(22)
+  cpv               String?
+  marca             String?
+  modello           String?
+  attivo            Boolean  @default(true)
+  scorte            Int?
+  tempoConsegna     Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  rdoProducts RdOProduct[]
+
+  @@map("products")
+}
+
+model RdO {
+  id                 String    @id @default(cuid())
+  numero             String    @unique
+  titolo             String
+  stazioneAppaltante String
+  importoBase        Float
+  scadenza           DateTime
+  stato              RdOStato  @default(NUOVA)
+  priorita           Priorita  @default(MEDIA)
+  note               String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  prodotti RdOProduct[]
+
+  @@map("rdos")
+}
+
+model RdOProduct {
+  id        String  @id @default(cuid())
+  rdoId     String
+  productId String
+  rdo       RdO     @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@unique([rdoId, productId])
+  @@map("rdo_products")
+}
+
+enum Role {
+  ADMIN
+  OPERATORE
+}
+
+enum RdOStato {
+  NUOVA
+  IN_LAVORAZIONE
+  OFFERTA_INVIATA
+  AGGIUDICATA
+  PERSA
+  SCADUTA
+}
+
+enum Priorita {
+  ALTA
+  MEDIA
+  BASSA
+}

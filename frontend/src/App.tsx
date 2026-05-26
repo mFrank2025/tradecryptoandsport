@@ -1,37 +1,45 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Layout from './components/Layout/Layout';
+import { AuthProvider, useAuth } from './hooks/useAuth';
+import Layout from './components/layout/Layout';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Teams from './pages/Teams';
-import PlayersList from './pages/Players/PlayersList';
-import PlayerDetail from './pages/Players/PlayerDetail';
-import MatchesList from './pages/Matches/MatchesList';
-import MatchDetail from './pages/Matches/MatchDetail';
-import LiveMatch from './pages/Matches/LiveMatch';
-import TrainingList from './pages/Training/TrainingList';
-import TrainingDetail from './pages/Training/TrainingDetail';
-import AnalysisDashboard from './pages/Analysis/AnalysisDashboard';
+import Catalog from './pages/Catalog';
+import RdOPage from './pages/RdO';
+import ImportCSV from './pages/ImportCSV';
+import ExportMePA from './pages/ExportMePA';
+import AIOptimization from './pages/AIOptimization';
 import Settings from './pages/Settings';
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { token } = useAuth();
+  return token ? <>{children}</> : <Navigate to="/login" replace />;
+}
+
+function AppRoutes() {
+  const { token } = useAuth();
+  return (
+    <Routes>
+      <Route path="/login" element={token ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route index element={<Dashboard />} />
+        <Route path="catalog" element={<Catalog />} />
+        <Route path="rdo" element={<RdOPage />} />
+        <Route path="import" element={<ImportCSV />} />
+        <Route path="export" element={<ExportMePA />} />
+        <Route path="ai" element={<AIOptimization />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="teams" element={<Teams />} />
-          <Route path="players" element={<PlayersList />} />
-          <Route path="players/:id" element={<PlayerDetail />} />
-          <Route path="matches" element={<MatchesList />} />
-          <Route path="matches/:id" element={<MatchDetail />} />
-          <Route path="training" element={<TrainingList />} />
-          <Route path="training/:id" element={<TrainingDetail />} />
-          <Route path="analysis" element={<AnalysisDashboard />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-        {/* Live match has its own full-screen layout */}
-        <Route path="/matches/:id/live" element={<LiveMatch />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

@@ -7,11 +7,7 @@ import './index.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 30_000,
-      refetchOnWindowFocus: false,
-    },
+    queries: { retry: 1, staleTime: 30_000, refetchOnWindowFocus: false },
   },
 });
 
@@ -23,12 +19,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         position="top-right"
         toastOptions={{
           style: {
-            background: '#1f2937',
-            color: '#f9fafb',
-            border: '1px solid #374151',
+            background: 'hsl(222 47% 14%)',
+            color: 'hsl(213 31% 91%)',
+            border: '1px solid hsl(216 34% 17%)',
           },
-          success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
-          error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+          success: { iconTheme: { primary: '#818cf8', secondary: '#fff' } },
+          error: { iconTheme: { primary: '#f87171', secondary: '#fff' } },
         }}
       />
     </QueryClientProvider>
